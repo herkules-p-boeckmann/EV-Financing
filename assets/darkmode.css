@@ -25,14 +25,35 @@ body { background-color: #121212; color: #e0e0e0; }
 .table {
     color: #e0e0e0 !important;
 }
-/* Slider Styling */
-.rc-slider-track { background-color: #1D9E75 !important; }
-.rc-slider-handle { border-color: #1D9E75 !important; background-color: #1D9E75 !important; }
-.rc-slider-rail { background-color: #444 !important; }
-.rc-slider-mark-text { color: #a0a0a0 !important; }
-.rc-slider-mark-text-active { color: #e0e0e0 !important; }
-.rc-slider-tooltip { z-index: 1060 !important; }
-.rc-slider-tooltip-inner { background-color: #2b2b2b !important; color: #e0e0e0 !important; border: 1px solid #444 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.5) !important; }
-.rc-slider-tooltip-arrow { border-bottom-color: #2b2b2b !important; border-top-color: #2b2b2b !important; }
-.rc-slider-dot { background-color: #2b2b2b !important; border-color: #444 !important; }
-.rc-slider-dot-active { border-color: #1D9E75 !important; }
+/* Slider Styling (Dash 4.x dash-slider-* classes) */
+/* Track rail */
+.dash-slider-track { background-color: #444 !important; }
+/* Active filled range */
+.dash-slider-range { background-color: #1D9E75 !important; }
+/* Thumb handle dot */
+.dash-slider-thumb {
+    background-color: #1D9E75 !important;
+    border-color: #0F6E56 !important;
+}
+/* Mark text labels */
+.dash-slider-mark { color: #a0a0a0 !important; }
+.dash-slider-mark.dash-slider-mark-outside-selection { color: #a0a0a0 !important; }
+/* Tooltip value bubble */
+.dash-slider-tooltip {
+    background-color: #2b2b2b !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #444 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+}
+/* Numeric input box to the right of the slider */
+.dash-range-slider-input {
+    background-color: #2b2b2b !important;
+    border: 1px solid #444 !important;
+    border-radius: 4px !important;
+    color: #e0e0e0 !important;
+}
+.dash-range-slider-input input {
+    background-color: #2b2b2b !important;
+    color: #e0e0e0 !important;
+}
