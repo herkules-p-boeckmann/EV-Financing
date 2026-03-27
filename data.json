@@ -1,0 +1,76 @@
+{
+  "horizon": 10,
+  "verbrenner": {
+    "name": "LPG/Benzin-Hybrid",
+    "km": 12500,
+    "lpg_mix": 80,
+    "ben_cons": 5,
+    "lpg_cons": 7.5,
+    "ben_price": 2.07,
+    "lpg_price": 1.03,
+    "insurance": 750,
+    "tax": 102,
+    "repair_y1": 2500,
+    "repair_follow": 800
+  },
+  "vehicles": [
+    {
+      "id": "kia-ev3",
+      "name": "KIA EV3 81,4 kWh",
+      "type": "EV",
+      "insurance": 1100,
+      "tax": 0,
+      "consumption": 18,
+      "strom_price": 28.06,
+      "charge_loss": 15,
+      "service": 300,
+      "foerder": 3000,
+      "financing_options": [
+        {
+          "id": "opt-1",
+          "label": "Teilfinanzierung 50%",
+          "type": "Finanzierung",
+          "source": "",
+          "price": 40000,
+          "down_pct": 50,
+          "years": 5,
+          "rate": 5.5,
+          "lease_rate": 399,
+          "lease_months": 48,
+          "lease_down": 0,
+          "lease_residual": 0,
+          "lease_km": 15000
+        }
+      ]
+    },
+    {
+      "id": "6efff0f2",
+      "name": "Volvo EX30",
+      "type": "EV",
+      "insurance": 1100,
+      "tax": 0,
+      "consumption": 18,
+      "strom_price": 28.06,
+      "charge_loss": 15,
+      "service": 300,
+      "foerder": 0,
+      "financing_options": [
+        {
+          "id": "47a69f16",
+          "label": "Teilfinanzierung 20%",
+          "type": "Finanzierung",
+          "source": "",
+          "price": 40000,
+          "down_pct": 20,
+          "years": 5,
+          "rate": 0,
+          "lease_rate": 399,
+          "lease_months": 48,
+          "lease_down": 0,
+          "lease_residual": 0,
+          "lease_km": 15000
+        }
+      ]
+    }
+  ]
+}
