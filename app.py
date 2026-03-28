@@ -457,7 +457,7 @@ with c_radio:
     )
 with c_btn:
     st.write("")
-    calc_clicked = st.button("🔄 Vergleich aktualisieren", type="primary", use_container_width=True)
+    st.button("🔄 Vergleich aktualisieren", type="primary", width="stretch")
 
 data["horizon"] = horizon
 
@@ -546,7 +546,7 @@ else:
             "Break-Even": f"Jahr {be}" if be else "> 10 Jahre",
         })
     if be_rows:
-        st.dataframe(pd.DataFrame(be_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(be_rows), width="stretch", hide_index=True)
     else:
         st.caption("Keine Vergleichsfahrzeuge.")
 
@@ -574,7 +574,7 @@ else:
         height=400,
         title=dict(text="Kumulative Gesamtkosten über 10 Jahre", font=dict(size=14)),
     )
-    st.plotly_chart(fig_cum, use_container_width=True)
+    st.plotly_chart(fig_cum, width="stretch")
 
     # ── Annual cost bar chart ──
     bar_labels = [f"J.{y}" for y in range(1, horizon + 1)]
@@ -599,4 +599,4 @@ else:
         height=350,
         title=dict(text=f"Jährliche Kosten – {horizon} Jahre", font=dict(size=14)),
     )
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, width="stretch")
