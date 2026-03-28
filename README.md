@@ -3,6 +3,8 @@
 Wirtschaftlicher Vergleich zwischen einem bestehenden Verbrenner und neuen Fahrzeugen,
 inkl. verschiedener Finanzierungs- und Leasingoptionen.
 
+> **Hinweis:** Die App wurde von Dash zu [Streamlit](https://streamlit.io) migriert.
+
 ## Schnellstart
 
 ### Voraussetzungen
@@ -16,14 +18,14 @@ inkl. verschiedener Finanzierungs- und Leasingoptionen.
 pip install -r requirements.txt
 
 # App starten
-python app.py
+streamlit run app.py
 ```
 
-Danach im Browser öffnen: **http://localhost:8050**
+Danach öffnet sich der Browser automatisch, oder manuell: **http://localhost:8501**
 
 ### Oder mit einem Befehl:
 ```bash
-pip install -r requirements.txt && python app.py
+pip install -r requirements.txt && streamlit run app.py
 ```
 
 ---
@@ -65,10 +67,12 @@ beim nächsten Start wiederhergestellt.
 
 ```
 kfz_vergleich/
-├── app.py            # Dash-App, Layout und Callbacks
-├── calculations.py   # Berechnungslogik (Opex, Finanzierung, Break-Even)
-├── data_store.py     # JSON-basierte Datenpersistenz
-├── data.json         # Gespeicherte Eingaben (wird automatisch erstellt)
-├── requirements.txt  # Python-Abhängigkeiten
+├── app.py              # Streamlit-App (Layout und Logik)
+├── calculations.py     # Berechnungslogik (Opex, Finanzierung, Break-Even)
+├── data_store.py       # JSON-basierte Datenpersistenz
+├── data.json           # Gespeicherte Eingaben (wird automatisch erstellt)
+├── requirements.txt    # Python-Abhängigkeiten
+├── .streamlit/
+│   └── config.toml     # Streamlit-Theme (Dark Mode)
 └── README.md
 ```
