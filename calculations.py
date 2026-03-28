@@ -53,6 +53,43 @@ def calc_financing(opt, foerder=0):
         return {"year_cost": year_cost, "summary": summary, "down": net,
                 "loan": 0, "interest": 0, "type": "Barkauf"}
 
+    elif fin_type == "Händlerfinanzierung":
+        down_mode = opt.get("down_mode", "%")
+        if down_mode == "%":
+            down = price * opt.get("down_pct", 0) / 100
+        else:
+            down = float(opt.get("down_eur", 0))
+        monthly = float(opt.get("monthly", 399))
+        laufzeit = max(int(opt.get("laufzeit", 48)), 1)
+        balloon = float(opt.get("balloon", 0))
+        last_year = (laufzeit + 11) // 12
+
+        def year_cost(y, _d=down, _m=monthly, _lt=laufzeit, _b=balloon, _ly=last_year):
+            if y > _ly:
+                return 0.0
+            months_this_year = min(y * 12, _lt) - (y - 1) * 12
+            cost = months_this_year * _m
+            if y == 1:
+                cost += _d
+            if y == _ly:
+                cost += _b
+            return cost
+
+        total_paid = down + monthly * laufzeit + balloon
+        summary = (
+            f"Finanzierung: {down:,.0f} € Anzahlung · "
+            f"{monthly:,.0f} €/Monat · {laufzeit} Monate · "
+            f"Schlussrate {balloon:,.0f} € · Gesamt {total_paid:,.0f} €"
+        ).replace(",", ".")
+        return {
+            "year_cost": year_cost,
+            "summary": summary,
+            "down": down,
+            "loan": monthly * laufzeit + balloon,
+            "interest": max(total_paid - price, 0),
+            "type": "Händlerfinanzierung",
+        }
+
     else:  # Finanzierung
         down_pct = opt.get("down_pct", 50) / 100
         years = opt.get("years", 5)

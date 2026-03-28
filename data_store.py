@@ -22,6 +22,7 @@ DEFAULT_DATA = {
             "id": "kia-ev3",
             "name": "KIA EV3 81,4 kWh",
             "type": "EV",
+            "uvp": 0.0,
             "insurance": 1100,
             "tax": 0,
             "consumption": 18.0,
@@ -44,6 +45,12 @@ DEFAULT_DATA = {
                     "lease_down": 0,
                     "lease_residual": 0,
                     "lease_km": 15000,
+                    "down_mode": "%",
+                    "down_eur": 0.0,
+                    "monthly": 399.0,
+                    "laufzeit": 48,
+                    "balloon": 0.0,
+                    "total_amount": 0.0,
                 }
             ]
         }

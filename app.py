@@ -149,7 +149,7 @@ _add_vehicle = False
 
 _VTYPE_OPTS = ["EV", "PHEV", "ICE"]
 _VTYPE_LABELS = {"EV": "Elektro (BEV)", "PHEV": "Plug-in Hybrid (PHEV)", "ICE": "Verbrenner (ICE)"}
-_FIN_OPTS = ["Finanzierung", "Leasing", "Barkauf"]
+_FIN_OPTS = ["Finanzierung", "Händlerfinanzierung", "Leasing", "Barkauf"]
 
 for veh_idx, vehicle in enumerate(data["vehicles"]):
     vid = vehicle["id"]
@@ -164,7 +164,7 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
             if st.button("🗑️", key=f"del_v_{vid}", help="Fahrzeug löschen"):
                 _vehicle_to_delete = vid
 
-        c1, c2, c3, c4 = st.columns([3, 2, 1, 1])
+        c1, c2, c3, c4, c5 = st.columns([3, 1, 1, 1, 1])
         with c1:
             vehicle["name"] = st.text_input(
                 "Bezeichnung / Ausstattungsvariante",
@@ -182,6 +182,15 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                 key=f"veh_type_{vid}",
             )
         with c3:
+            vehicle["uvp"] = st.number_input(
+                "UVP (€)",
+                value=float(vehicle.get("uvp", 0)),
+                min_value=0.0,
+                step=500.0,
+                key=f"veh_uvp_{vid}",
+                help="Unverbindliche Preisempfehlung des Herstellers",
+            )
+        with c4:
             vehicle["insurance"] = st.number_input(
                 "Versicherung (€/J)",
                 value=int(vehicle.get("insurance", 1100)),
@@ -189,7 +198,7 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                 step=10,
                 key=f"veh_ins_{vid}",
             )
-        with c4:
+        with c5:
             vehicle["tax"] = st.number_input(
                 "KFZ-Steuer (€/J)",
                 value=int(vehicle.get("tax", 0)),
@@ -316,6 +325,94 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                             key=f"opt_rate_{vid}_{oid}",
                         )
 
+                elif fin_type == "Händlerfinanzierung":
+                    c1, c2, c3, c4, c5 = st.columns(5)
+                    with c1:
+                        opt["price"] = st.number_input(
+                            "Kaufpreis gesamt (€)",
+                            value=float(opt.get("price", 40000)),
+                            min_value=0.0,
+                            step=500.0,
+                            key=f"opt_price_hf_{vid}_{oid}",
+                        )
+                    with c2:
+                        dm = opt.get("down_mode", "%")
+                        opt["down_mode"] = st.radio(
+                            "Anzahlung",
+                            options=["%", "€"],
+                            index=0 if dm == "%" else 1,
+                            horizontal=True,
+                            key=f"opt_dmode_{vid}_{oid}",
+                        )
+                        if opt["down_mode"] == "%":
+                            opt["down_pct"] = st.number_input(
+                                "Anzahlung (%)",
+                                value=float(opt.get("down_pct", 0)),
+                                min_value=0.0,
+                                max_value=100.0,
+                                step=0.5,
+                                key=f"opt_down_pct_hf_{vid}_{oid}",
+                            )
+                        else:
+                            opt["down_eur"] = st.number_input(
+                                "Anzahlung (€)",
+                                value=float(opt.get("down_eur", 0)),
+                                min_value=0.0,
+                                step=500.0,
+                                key=f"opt_down_eur_{vid}_{oid}",
+                            )
+                    with c3:
+                        opt["monthly"] = st.number_input(
+                            "Monatsrate (€/Monat)",
+                            value=float(opt.get("monthly", 399)),
+                            min_value=0.0,
+                            step=10.0,
+                            key=f"opt_monthly_{vid}_{oid}",
+                        )
+                    with c4:
+                        opt["laufzeit"] = int(st.number_input(
+                            "Laufzeit (Monate)",
+                            value=int(opt.get("laufzeit", 48)),
+                            min_value=6,
+                            max_value=120,
+                            step=6,
+                            key=f"opt_laufzeit_{vid}_{oid}",
+                        ))
+                    with c5:
+                        opt["balloon"] = st.number_input(
+                            "Schlussrate (€)",
+                            value=float(opt.get("balloon", 0)),
+                            min_value=0.0,
+                            step=500.0,
+                            key=f"opt_balloon_{vid}_{oid}",
+                            help="Restschuld / Ballonrate am Ende der Laufzeit (0 = keine)",
+                        )
+
+                    _price = opt.get("price", 40000)
+                    _dm = opt.get("down_mode", "%")
+                    _down_calc = _price * opt.get("down_pct", 0) / 100 if _dm == "%" else opt.get("down_eur", 0)
+                    _calc_total = _down_calc + opt.get("monthly", 399) * opt.get("laufzeit", 48) + opt.get("balloon", 0)
+                    c1, c2 = st.columns([1, 2])
+                    with c1:
+                        opt["total_amount"] = st.number_input(
+                            "Gesamtbetrag lt. Händler (€)",
+                            value=float(opt.get("total_amount", 0)),
+                            min_value=0.0,
+                            step=100.0,
+                            key=f"opt_total_{vid}_{oid}",
+                            help="Laut Angebot – zum Vergleich mit dem berechneten Wert",
+                        )
+                    with c2:
+                        _stated = opt.get("total_amount", 0)
+                        _delta = f"{_calc_total - _stated:+,.0f} €".replace(",", ".") if _stated > 0 else None
+                        st.metric(
+                            "Berechneter Gesamtbetrag",
+                            f"{_calc_total:,.0f} €".replace(",", "."),
+                            delta=_delta,
+                            delta_color="off",
+                            help="Anzahlung + Monatsraten × Laufzeit + Schlussrate",
+                        )
+
                 elif fin_type == "Leasing":
                     c1, c2, c3, c4, c5 = st.columns(5)
                     with c1:
@@ -415,6 +512,12 @@ if _add_option_to:
                 "lease_down": 0,
                 "lease_residual": 0,
                 "lease_km": 15000,
+                "down_mode": "%",
+                "down_eur": 0.0,
+                "monthly": 399.0,
+                "laufzeit": 48,
+                "balloon": 0.0,
+                "total_amount": 0.0,
             })
     _mutated = True
 
@@ -423,6 +526,7 @@ if _add_vehicle:
         "id": str(uuid.uuid4())[:8],
         "name": "",
         "type": "EV",
+        "uvp": 0.0,
         "insurance": 1100,
         "tax": 0,
         "consumption": 18.0,
