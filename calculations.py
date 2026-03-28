@@ -19,107 +19,63 @@ def calc_yearly(vehicle_or_verbrenner, year, km, mode="verbrenner"):
 
 
 def calc_financing(opt, foerder=0):
-    """Returns financing metadata and a year_cost(y) function."""
+    """Returns financing metadata and a year_cost(y) function.
+
+    Uses directly-entered contract data: anzahlung, laufzeit (months),
+    monatliche_rate, schlussrate, and optionally gesamtbetrag.
+    Barkauf is handled as a special case (full price in year 1).
+    """
     fin_type = opt.get("type", "Finanzierung")
-    price = opt.get("price", 40000)
-    net = max(price - foerder, 0)
 
-    if fin_type == "Leasing":
-        rate = opt.get("lease_rate", 399)
-        months = opt.get("lease_months", 48)
-        down = opt.get("lease_down", 0)
-        years = months / 12
-        annual_rate = rate * 12
+    if fin_type == "Barkauf":
+        price = float(opt.get("price", 0.0))
+        net = max(price - foerder, 0)
 
         def year_cost(y):
-            if y == 1:
-                return down + annual_rate
-            elif y <= years:
-                return annual_rate
-            else:
-                return 0
+            return net if y == 1 else 0.0
 
-        total_lease = down + rate * months
-        summary = (f"Leasing: {rate:.0f} €/Monat · {months} Monate · "
-                   f"Sonderzahlung {down:,.0f} € · Gesamt {total_lease:,.0f} €".replace(",","."))
-        return {"year_cost": year_cost, "summary": summary, "down": down,
-                "loan": rate * months, "interest": 0, "type": "Leasing"}
-
-    elif fin_type == "Barkauf":
-        def year_cost(y):
-            return net if y == 1 else 0
-
-        summary = f"Barkauf: {net:,.0f} € (nach Förderung)".replace(",",".")
+        summary = f"Barkauf: {net:,.0f} € (nach Förderung)".replace(",", ".")
         return {"year_cost": year_cost, "summary": summary, "down": net,
                 "loan": 0, "interest": 0, "type": "Barkauf"}
 
-    elif fin_type == "Händlerfinanzierung":
-        down_mode = opt.get("down_mode", "%")
-        if down_mode == "%":
-            down = price * opt.get("down_pct", 0) / 100
-        else:
-            down = float(opt.get("down_eur", 0))
-        monthly = float(opt.get("monthly", 399))
-        laufzeit = max(int(opt.get("laufzeit", 48)), 1)
-        balloon = float(opt.get("balloon", 0))
-        last_year = (laufzeit + 11) // 12
+    anzahlung = float(opt.get("anzahlung", 0.0))
+    laufzeit = max(int(opt.get("laufzeit", 48)), 1)
+    monatliche_rate = float(opt.get("monatliche_rate", 0.0))
+    schlussrate = float(opt.get("schlussrate", 0.0))
 
-        def year_cost(y, _d=down, _m=monthly, _lt=laufzeit, _b=balloon, _ly=last_year):
-            if y > _ly:
-                return 0.0
-            months_this_year = min(y * 12, _lt) - (y - 1) * 12
-            cost = months_this_year * _m
-            if y == 1:
-                cost += _d
-            if y == _ly:
-                cost += _b
-            return cost
+    gesamtbetrag_entered = float(opt.get("gesamtbetrag", 0.0))
+    gesamtbetrag_calc = anzahlung + monatliche_rate * laufzeit + schlussrate
+    gesamtbetrag = gesamtbetrag_entered if gesamtbetrag_entered > 0 else gesamtbetrag_calc
 
-        total_paid = down + monthly * laufzeit + balloon
-        summary = (
-            f"Finanzierung: {down:,.0f} € Anzahlung · "
-            f"{monthly:,.0f} €/Monat · {laufzeit} Monate · "
-            f"Schlussrate {balloon:,.0f} € · Gesamt {total_paid:,.0f} €"
-        ).replace(",", ".")
-        return {
-            "year_cost": year_cost,
-            "summary": summary,
-            "down": down,
-            "loan": monthly * laufzeit + balloon,
-            "interest": max(total_paid - price, 0),
-            "type": "Händlerfinanzierung",
-        }
+    last_year = (laufzeit + 11) // 12
 
-    else:  # Finanzierung
-        down_pct = opt.get("down_pct", 50) / 100
-        years = opt.get("years", 5)
-        rate_annual = opt.get("rate", 5.5) / 100
-        down = net * down_pct
-        loan = net - down
-        r = rate_annual / 12
-        n = years * 12
+    def year_cost(y, _a=anzahlung, _m=monatliche_rate, _lt=laufzeit,
+                  _s=schlussrate, _ly=last_year):
+        if y > _ly:
+            return 0.0
+        months_this_year = min(y * 12, _lt) - (y - 1) * 12
+        cost = months_this_year * _m
+        if y == 1:
+            cost += _a
+        if y == _ly:
+            cost += _s
+        return cost
 
-        if r > 0:
-            monthly = (loan * r * (1 + r) ** n) / ((1 + r) ** n - 1)
-        else:
-            monthly = loan / n if n > 0 else 0
+    summary = (
+        f"{fin_type}: {anzahlung:,.0f} € Anzahlung · "
+        f"{monatliche_rate:,.0f} €/Monat · {laufzeit} Monate · "
+        f"Gesamt {gesamtbetrag:,.0f} €"
+    ).replace(",", ".")
 
-        annual_payment = monthly * 12
-        total_interest = annual_payment * years - loan
-
-        def year_cost(y):
-            if y == 1:
-                return down + annual_payment
-            elif y <= years:
-                return annual_payment
-            else:
-                return 0
-
-        summary = (f"Finanzierung: {down:,.0f} € Anzahlung · "
-                   f"{monthly:,.0f} €/Monat · {years} Jahre · "
-                   f"Zinsen gesamt {total_interest:,.0f} €".replace(",","."))
-        return {"year_cost": year_cost, "summary": summary, "down": down,
-                "loan": loan, "interest": total_interest, "type": "Finanzierung"}
+    price = float(opt.get("price", 0.0))
+    return {
+        "year_cost": year_cost,
+        "summary": summary,
+        "down": anzahlung,
+        "loan": monatliche_rate * laufzeit + schlussrate,
+        "interest": max(gesamtbetrag - price, 0) if price > 0 else 0,
+        "type": fin_type,
+    }
 
 
 def calc_cumulative(yearly_list):

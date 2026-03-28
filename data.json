@@ -25,7 +25,23 @@
       "charge_loss": 15,
       "service": 300,
       "foerder": 4000,
-      "financing_options": [],
+      "financing_options": [
+        {
+          "id": "f08684fe",
+          "label": "",
+          "type": "Finanzierung",
+          "source": "",
+          "date_of_entry": "2026-03-28",
+          "anmerkungen": "",
+          "price": 0.0,
+          "anzahlung": 0.0,
+          "laufzeit": 48,
+          "effektiver_jahreszins": 0.0,
+          "monatliche_rate": 0.0,
+          "schlussrate": 0.0,
+          "gesamtbetrag": 0.0
+        }
+      ],
       "uvp": 0.0
     }
   ]

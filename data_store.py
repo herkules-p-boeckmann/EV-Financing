@@ -33,24 +33,18 @@ DEFAULT_DATA = {
             "financing_options": [
                 {
                     "id": "opt-1",
-                    "label": "Teilfinanzierung 50%",
+                    "label": "Finanzierungsoption 1",
                     "type": "Finanzierung",
                     "source": "",
-                    "price": 40000,
-                    "down_pct": 50,
-                    "years": 5,
-                    "rate": 5.5,
-                    "lease_rate": 399,
-                    "lease_months": 48,
-                    "lease_down": 0,
-                    "lease_residual": 0,
-                    "lease_km": 15000,
-                    "down_mode": "%",
-                    "down_eur": 0.0,
-                    "monthly": 399.0,
+                    "date_of_entry": "",
+                    "anmerkungen": "",
+                    "price": 40000.0,
+                    "anzahlung": 0.0,
                     "laufzeit": 48,
-                    "balloon": 0.0,
-                    "total_amount": 0.0,
+                    "effektiver_jahreszins": 0.0,
+                    "monatliche_rate": 399.0,
+                    "schlussrate": 0.0,
+                    "gesamtbetrag": 0.0,
                 }
             ]
         }

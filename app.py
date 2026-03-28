@@ -150,6 +150,7 @@ _add_vehicle = False
 _VTYPE_OPTS = ["EV", "PHEV", "ICE"]
 _VTYPE_LABELS = {"EV": "Elektro (BEV)", "PHEV": "Plug-in Hybrid (PHEV)", "ICE": "Verbrenner (ICE)"}
 _FIN_OPTS = ["Finanzierung", "Händlerfinanzierung", "Leasing", "Barkauf"]
+_TODAY = __import__("datetime").date.today().isoformat()
 
 for veh_idx, vehicle in enumerate(data["vehicles"]):
     vid = vehicle["id"]
@@ -259,12 +260,13 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
         for opt in vehicle.get("financing_options", []):
             oid = opt["id"]
             with st.container(border=True):
-                c1, c2, c3, del_col = st.columns([3, 2, 3, 1])
+                # ── Row 1: General information ──────────────────────────────
+                c1, c2, c3, c4, del_col = st.columns([3, 1.5, 2, 1.5, 1])
                 with c1:
                     opt["label"] = st.text_input(
                         "Bezeichnung",
                         value=opt.get("label", ""),
-                        placeholder="Händlerangebot A",
+                        placeholder="Finanzierungsoption 1",
                         key=f"opt_label_{vid}_{oid}",
                     )
                 with c2:
@@ -277,133 +279,119 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                     )
                 with c3:
                     opt["source"] = st.text_input(
-                        "Quelle / Autohaus",
+                        "Quelle",
                         value=opt.get("source", ""),
+                        placeholder="Online, Autohaus …",
                         key=f"opt_source_{vid}_{oid}",
+                    )
+                with c4:
+                    if not opt.get("date_of_entry"):
+                        opt["date_of_entry"] = _TODAY
+                    st.text_input(
+                        "Erfassungsdatum",
+                        value=opt["date_of_entry"],
+                        disabled=True,
+                        key=f"opt_date_{vid}_{oid}",
                     )
                 with del_col:
                     st.write("")
                     if st.button("🗑️", key=f"del_opt_{vid}_{oid}", help="Option löschen"):
                         _option_to_delete = (vid, oid)
 
+                # ── Row 2: Financial information ────────────────────────────
                 fin_type = opt["type"]
-                if fin_type == "Finanzierung":
-                    c1, c2, c3, c4 = st.columns(4)
+                is_leasing = fin_type == "Leasing"
+                is_barkauf = fin_type == "Barkauf"
+
+                if is_barkauf:
+                    c1, c2 = st.columns([1, 3])
                     with c1:
                         opt["price"] = st.number_input(
                             "Kaufpreis (€)",
-                            value=float(opt.get("price", 40000)),
+                            value=float(opt.get("price", 0.0)),
                             min_value=0.0,
                             step=500.0,
                             key=f"opt_price_{vid}_{oid}",
                         )
                     with c2:
-                        opt["down_pct"] = st.number_input(
-                            "Anzahlung (%)",
-                            value=float(opt.get("down_pct", 50)),
-                            min_value=0.0,
-                            max_value=100.0,
-                            step=5.0,
-                            key=f"opt_down_pct_{vid}_{oid}",
+                        st.info(
+                            "Kein Kredit – Kaufpreis wird im ersten Jahr vollständig angesetzt.",
+                            icon="ℹ️",
                         )
-                    with c3:
-                        opt["years"] = int(st.number_input(
-                            "Laufzeit (Jahre)",
-                            value=int(opt.get("years", 5)),
-                            min_value=1,
-                            max_value=10,
-                            step=1,
-                            key=f"opt_years_{vid}_{oid}",
-                        ))
-                    with c4:
-                        opt["rate"] = st.number_input(
-                            "Zinssatz (%/Jahr)",
-                            value=float(opt.get("rate", 5.5)),
-                            min_value=0.0,
-                            max_value=20.0,
-                            step=0.25,
-                            key=f"opt_rate_{vid}_{oid}",
-                        )
-
-                elif fin_type == "Händlerfinanzierung":
+                else:
                     c1, c2, c3, c4, c5 = st.columns(5)
                     with c1:
                         opt["price"] = st.number_input(
-                            "Kaufpreis gesamt (€)",
-                            value=float(opt.get("price", 40000)),
+                            "Kaufpreis (€)" + (" *(optional)*" if is_leasing else ""),
+                            value=float(opt.get("price", 0.0)),
                             min_value=0.0,
                             step=500.0,
-                            key=f"opt_price_hf_{vid}_{oid}",
+                            key=f"opt_price_{vid}_{oid}",
+                            help="Optional bei Leasing" if is_leasing else None,
                         )
                     with c2:
-                        dm = opt.get("down_mode", "%")
-                        opt["down_mode"] = st.radio(
-                            "Anzahlung",
-                            options=["%", "€"],
-                            index=0 if dm == "%" else 1,
-                            horizontal=True,
-                            key=f"opt_dmode_{vid}_{oid}",
-                        )
-                        if opt["down_mode"] == "%":
-                            opt["down_pct"] = st.number_input(
-                                "Anzahlung (%)",
-                                value=float(opt.get("down_pct", 0)),
-                                min_value=0.0,
-                                max_value=100.0,
-                                step=0.5,
-                                key=f"opt_down_pct_hf_{vid}_{oid}",
-                            )
-                        else:
-                            opt["down_eur"] = st.number_input(
-                                "Anzahlung (€)",
-                                value=float(opt.get("down_eur", 0)),
-                                min_value=0.0,
-                                step=500.0,
-                                key=f"opt_down_eur_{vid}_{oid}",
-                            )
-                    with c3:
-                        opt["monthly"] = st.number_input(
-                            "Monatsrate (€/Monat)",
-                            value=float(opt.get("monthly", 399)),
+                        opt["anzahlung"] = st.number_input(
+                            "Anzahlung (€)",
+                            value=float(opt.get("anzahlung", 0.0)),
                             min_value=0.0,
-                            step=10.0,
-                            key=f"opt_monthly_{vid}_{oid}",
+                            step=500.0,
+                            key=f"opt_anzahlung_{vid}_{oid}",
                         )
-                    with c4:
+                    with c3:
                         opt["laufzeit"] = int(st.number_input(
                             "Laufzeit (Monate)",
                             value=int(opt.get("laufzeit", 48)),
-                            min_value=6,
+                            min_value=1,
                             max_value=120,
                             step=6,
                             key=f"opt_laufzeit_{vid}_{oid}",
                         ))
-                    with c5:
-                        opt["balloon"] = st.number_input(
-                            "Schlussrate (€)",
-                            value=float(opt.get("balloon", 0)),
+                    with c4:
+                        opt["effektiver_jahreszins"] = st.number_input(
+                            "Eff. Jahreszins (%)",
+                            value=float(opt.get("effektiver_jahreszins", 0.0)),
                             min_value=0.0,
-                            step=500.0,
-                            key=f"opt_balloon_{vid}_{oid}",
-                            help="Restschuld / Ballonrate am Ende der Laufzeit (0 = keine)",
+                            max_value=30.0,
+                            step=0.01,
+                            format="%.2f",
+                            key=f"opt_zins_{vid}_{oid}",
+                        )
+                    with c5:
+                        opt["monatliche_rate"] = st.number_input(
+                            "Monatliche Rate (€)",
+                            value=float(opt.get("monatliche_rate", 0.0)),
+                            min_value=0.0,
+                            step=10.0,
+                            key=f"opt_rate_{vid}_{oid}",
                         )
 
-                    _price = opt.get("price", 40000)
-                    _dm = opt.get("down_mode", "%")
-                    _down_calc = _price * opt.get("down_pct", 0) / 100 if _dm == "%" else opt.get("down_eur", 0)
-                    _calc_total = _down_calc + opt.get("monthly", 399) * opt.get("laufzeit", 48) + opt.get("balloon", 0)
-                    c1, c2 = st.columns([1, 2])
+                    # ── Row 3: Schlussrate, Gesamtbetrag ────────────────────
+                    c1, c2, c3 = st.columns([1, 1, 2])
                     with c1:
-                        opt["total_amount"] = st.number_input(
-                            "Gesamtbetrag lt. Händler (€)",
-                            value=float(opt.get("total_amount", 0)),
+                        opt["schlussrate"] = st.number_input(
+                            "Schlussrate (€)",
+                            value=float(opt.get("schlussrate", 0.0)),
                             min_value=0.0,
-                            step=100.0,
-                            key=f"opt_total_{vid}_{oid}",
-                            help="Laut Angebot – zum Vergleich mit dem berechneten Wert",
+                            step=500.0,
+                            key=f"opt_schluss_{vid}_{oid}",
+                            help="Restschuld / Ballonrate am Ende der Laufzeit (0 = keine)",
                         )
                     with c2:
-                        _stated = opt.get("total_amount", 0)
+                        opt["gesamtbetrag"] = st.number_input(
+                            "Gesamtbetrag (€)",
+                            value=float(opt.get("gesamtbetrag", 0.0)),
+                            min_value=0.0,
+                            step=100.0,
+                            key=f"opt_gesamt_{vid}_{oid}",
+                            help="Laut Vertrag – falls abweichend vom berechneten Wert",
+                        )
+                    with c3:
+                        _laufzeit = int(opt.get("laufzeit", 48))
+                        _anz = float(opt.get("anzahlung", 0.0))
+                        _rate = float(opt.get("monatliche_rate", 0.0))
+                        _schluss = float(opt.get("schlussrate", 0.0))
+                        _calc_total = _anz + _rate * _laufzeit + _schluss
+                        _stated = float(opt.get("gesamtbetrag", 0.0))
                         _delta = f"{_calc_total - _stated:+,.0f} €".replace(",", ".") if _stated > 0 else None
                         st.metric(
                             "Berechneter Gesamtbetrag",
@@ -413,66 +401,14 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                             help="Anzahlung + Monatsraten × Laufzeit + Schlussrate",
                         )
 
-                elif fin_type == "Leasing":
-                    c1, c2, c3, c4, c5 = st.columns(5)
-                    with c1:
-                        opt["price"] = st.number_input(
-                            "Listenpreis (€)",
-                            value=float(opt.get("price", 40000)),
-                            min_value=0.0,
-                            step=500.0,
-                            key=f"opt_price_ls_{vid}_{oid}",
-                        )
-                    with c2:
-                        opt["lease_rate"] = st.number_input(
-                            "Rate (€/Monat)",
-                            value=float(opt.get("lease_rate", 399)),
-                            min_value=0.0,
-                            step=10.0,
-                            key=f"opt_lease_rate_{vid}_{oid}",
-                        )
-                    with c3:
-                        opt["lease_months"] = int(st.number_input(
-                            "Laufzeit (Monate)",
-                            value=int(opt.get("lease_months", 48)),
-                            min_value=12,
-                            max_value=96,
-                            step=6,
-                            key=f"opt_lease_months_{vid}_{oid}",
-                        ))
-                    with c4:
-                        opt["lease_down"] = st.number_input(
-                            "Sonderzahlung (€)",
-                            value=float(opt.get("lease_down", 0)),
-                            min_value=0.0,
-                            step=500.0,
-                            key=f"opt_lease_down_{vid}_{oid}",
-                        )
-                    with c5:
-                        opt["lease_km"] = int(st.number_input(
-                            "km-Limit/Jahr",
-                            value=int(opt.get("lease_km", 15000)),
-                            min_value=5000,
-                            max_value=60000,
-                            step=1000,
-                            key=f"opt_lease_km_{vid}_{oid}",
-                        ))
-
-                else:  # Barkauf
-                    c1, c2 = st.columns([1, 3])
-                    with c1:
-                        opt["price"] = st.number_input(
-                            "Kaufpreis (€)",
-                            value=float(opt.get("price", 40000)),
-                            min_value=0.0,
-                            step=500.0,
-                            key=f"opt_price_bk_{vid}_{oid}",
-                        )
-                    with c2:
-                        st.info(
-                            "Kein Kredit – Kaufpreis wird im ersten Jahr vollständig angesetzt.",
-                            icon="ℹ️",
-                        )
+                # ── Row 4: Anmerkungen ───────────────────────────────────────
+                opt["anmerkungen"] = st.text_area(
+                    "Anmerkungen",
+                    value=opt.get("anmerkungen", ""),
+                    placeholder="Zusätzliche Informationen oder Kommentare …",
+                    height=68,
+                    key=f"opt_notes_{vid}_{oid}",
+                )
 
         if st.button(f"➕ Option hinzufügen", key=f"add_opt_{vid}"):
             _add_option_to = vid
@@ -503,21 +439,15 @@ if _add_option_to:
                 "label": "",
                 "type": "Finanzierung",
                 "source": "",
-                "price": 40000,
-                "down_pct": 50,
-                "years": 5,
-                "rate": 5.5,
-                "lease_rate": 399,
-                "lease_months": 48,
-                "lease_down": 0,
-                "lease_residual": 0,
-                "lease_km": 15000,
-                "down_mode": "%",
-                "down_eur": 0.0,
-                "monthly": 399.0,
+                "date_of_entry": _TODAY,
+                "anmerkungen": "",
+                "price": 0.0,
+                "anzahlung": 0.0,
                 "laufzeit": 48,
-                "balloon": 0.0,
-                "total_amount": 0.0,
+                "effektiver_jahreszins": 0.0,
+                "monatliche_rate": 0.0,
+                "schlussrate": 0.0,
+                "gesamtbetrag": 0.0,
             })
     _mutated = True
 
@@ -653,6 +583,42 @@ else:
         st.dataframe(pd.DataFrame(be_rows), width="stretch", hide_index=True)
     else:
         st.caption("Keine Vergleichsfahrzeuge.")
+
+    # ── Financing details comparison table ──
+    _fin_detail_rows = []
+    for vehicle in data.get("vehicles", []):
+        for opt in vehicle.get("financing_options", []):
+            vname = vehicle.get("name", "") or "Fahrzeug"
+            _laufzeit = int(opt.get("laufzeit", 48))
+            _anz = float(opt.get("anzahlung", 0.0))
+            _rate = float(opt.get("monatliche_rate", 0.0))
+            _schluss = float(opt.get("schlussrate", 0.0))
+            _gesamt_entered = float(opt.get("gesamtbetrag", 0.0))
+            _gesamt_calc = _anz + _rate * _laufzeit + _schluss
+            _gesamt_display = _gesamt_entered if _gesamt_entered > 0 else _gesamt_calc
+            _price = float(opt.get("price", 0.0))
+            _fin_detail_rows.append({
+                "Fahrzeug": vname,
+                "Option": opt.get("label", "") or opt.get("type", ""),
+                "Typ": opt.get("type", ""),
+                "Quelle": opt.get("source", ""),
+                "Datum": opt.get("date_of_entry", ""),
+                "Kaufpreis": f"{_price:,.0f} €".replace(",", ".") if _price > 0 else "–",
+                "Anzahlung": f"{_anz:,.0f} €".replace(",", "."),
+                "Laufzeit": f"{_laufzeit} Monate",
+                "Eff. Jahreszins": f"{float(opt.get('effektiver_jahreszins', 0.0)):.2f} %",
+                "Monatl. Rate": f"{_rate:,.0f} €".replace(",", "."),
+                "Schlussrate": f"{_schluss:,.0f} €".replace(",", ".") if _schluss > 0 else "–",
+                "Gesamtbetrag": f"{_gesamt_display:,.0f} €".replace(",", "."),
+                "Anmerkungen": opt.get("anmerkungen", ""),
+            })
+    if _fin_detail_rows:
+        st.markdown("**Finanzierungsoptionen im Detail**")
+        st.dataframe(
+            pd.DataFrame(_fin_detail_rows),
+            hide_index=True,
+            use_container_width=True,
+        )
 
     # ── Cumulative cost chart ──
     years = list(range(1, 11))
