@@ -322,7 +322,7 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                     c1, c2, c3, c4, c5 = st.columns(5)
                     with c1:
                         opt["price"] = st.number_input(
-                            "Kaufpreis (€)" + (" *(optional)*" if is_leasing else ""),
+                            f"Kaufpreis (€){' *(optional)*' if is_leasing else ''}",
                             value=float(opt.get("price", 0.0)),
                             min_value=0.0,
                             step=500.0,
@@ -610,7 +610,7 @@ else:
                 "Monatl. Rate": f"{_rate:,.0f} €".replace(",", "."),
                 "Schlussrate": f"{_schluss:,.0f} €".replace(",", ".") if _schluss > 0 else "–",
                 "Gesamtbetrag": f"{_gesamt_display:,.0f} €".replace(",", "."),
-                "Anmerkungen": opt.get("anmerkungen", ""),
+                "Anmerkungen": (opt.get("anmerkungen", "") or "")[:80] + ("…" if len(opt.get("anmerkungen", "") or "") > 80 else ""),
             })
     if _fin_detail_rows:
         st.markdown("**Finanzierungsoptionen im Detail**")
