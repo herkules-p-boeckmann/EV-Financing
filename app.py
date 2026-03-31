@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from calculations import calc_cumulative, calc_financing, calc_yearly, find_break_even
-from data_store import load_data, save_data
+from data_store import load_data, save_data, save_attachment, delete_attachment, load_attachment
 
 st.set_page_config(
     page_title="KFZ Vergleichsrechner",
@@ -146,6 +146,8 @@ _vehicle_to_delete = None
 _option_to_delete = None   # (vid, oid)
 _add_option_to = None      # vid
 _add_vehicle = False
+_attachment_to_delete = None  # (vid, oid, filename)
+_new_attachment = None         # (vid, oid, uploaded_file)
 
 _VTYPE_OPTS = ["EV", "PHEV", "ICE"]
 _VTYPE_LABELS = {"EV": "Elektro (BEV)", "PHEV": "Plug-in Hybrid (PHEV)", "ICE": "Verbrenner (ICE)"}
@@ -410,6 +412,52 @@ for veh_idx, vehicle in enumerate(data["vehicles"]):
                     key=f"opt_notes_{vid}_{oid}",
                 )
 
+                # ── Row 5: Anhang (Screenshot / PDF) ────────────────────────
+                _att_meta = opt.get("attachment")
+                if _att_meta:
+                    _att_bytes = load_attachment(_att_meta["filename"])
+                    if _att_bytes is not None:
+                        _is_image = _att_meta["mime_type"].startswith("image/")
+                        ca, cb, cc = st.columns([5, 1, 1])
+                        with ca:
+                            if _is_image:
+                                st.image(
+                                    _att_bytes,
+                                    caption=_att_meta["original_name"],
+                                    use_container_width=False,
+                                    width=400,
+                                )
+                            else:
+                                st.info(f"📎 {_att_meta['original_name']}", icon="📄")
+                        with cb:
+                            st.download_button(
+                                "⬇️ Herunterladen",
+                                data=_att_bytes,
+                                file_name=_att_meta["original_name"],
+                                mime=_att_meta["mime_type"],
+                                key=f"dl_att_{vid}_{oid}",
+                            )
+                        with cc:
+                            st.write("")
+                            if st.button(
+                                "🗑️ Entfernen",
+                                key=f"del_att_{vid}_{oid}",
+                                help="Anhang löschen",
+                            ):
+                                _attachment_to_delete = (vid, oid, _att_meta["filename"])
+
+                _upload_label = (
+                    "Anhang ersetzen" if _att_meta else "Anhang hinzufügen (Screenshot/PDF)"
+                )
+                _uploaded_file = st.file_uploader(
+                    _upload_label,
+                    type=["png", "jpg", "jpeg", "pdf"],
+                    key=f"opt_upload_{vid}_{oid}",
+                    help="Screenshot oder PDF des Finanzierungsangebots",
+                )
+                if _uploaded_file is not None:
+                    _new_attachment = (vid, oid, _uploaded_file)
+
         if st.button(f"➕ Option hinzufügen", key=f"add_opt_{vid}"):
             _add_option_to = vid
 
@@ -421,6 +469,11 @@ if st.button("➕ Fahrzeug hinzufügen", type="secondary"):
 _mutated = False
 
 if _vehicle_to_delete:
+    for veh in data["vehicles"]:
+        if veh["id"] == _vehicle_to_delete:
+            for opt in veh.get("financing_options", []):
+                if opt.get("attachment"):
+                    delete_attachment(opt["attachment"]["filename"])
     data["vehicles"] = [veh for veh in data["vehicles"] if veh["id"] != _vehicle_to_delete]
     _mutated = True
 
@@ -428,6 +481,9 @@ if _option_to_delete:
     del_vid, del_oid = _option_to_delete
     for veh in data["vehicles"]:
         if veh["id"] == del_vid:
+            for opt in veh["financing_options"]:
+                if opt["id"] == del_oid and opt.get("attachment"):
+                    delete_attachment(opt["attachment"]["filename"])
             veh["financing_options"] = [o for o in veh["financing_options"] if o["id"] != del_oid]
     _mutated = True
 
@@ -448,7 +504,35 @@ if _add_option_to:
                 "monatliche_rate": 0.0,
                 "schlussrate": 0.0,
                 "gesamtbetrag": 0.0,
+                "attachment": None,
             })
+            _mutated = True
+
+if _attachment_to_delete:
+    _del_vid, _del_oid, _del_filename = _attachment_to_delete
+    delete_attachment(_del_filename)
+    for veh in data["vehicles"]:
+        if veh["id"] == _del_vid:
+            for opt in veh["financing_options"]:
+                if opt["id"] == _del_oid:
+                    opt["attachment"] = None
+    _mutated = True
+
+if _new_attachment:
+    _new_vid, _new_oid, _uploaded = _new_attachment
+    for veh in data["vehicles"]:
+        if veh["id"] == _new_vid:
+            for opt in veh["financing_options"]:
+                if opt["id"] == _new_oid:
+                    if opt.get("attachment"):
+                        delete_attachment(opt["attachment"]["filename"])
+                    _uploaded.seek(0)
+                    opt["attachment"] = save_attachment(
+                        _new_oid,
+                        _uploaded.read(),
+                        _uploaded.name,
+                        _uploaded.type,
+                    )
     _mutated = True
 
 if _add_vehicle:

@@ -1,6 +1,7 @@
 import json, os
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data.json")
+ATTACHMENTS_DIR = os.path.join(os.path.dirname(__file__), "attachments")
 
 DEFAULT_DATA = {
     "horizon": 5,
@@ -45,6 +46,7 @@ DEFAULT_DATA = {
                     "monatliche_rate": 399.0,
                     "schlussrate": 0.0,
                     "gesamtbetrag": 0.0,
+                    "attachment": None,
                 }
             ]
         }
@@ -63,3 +65,31 @@ def load_data():
 def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def save_attachment(opt_id: str, file_bytes: bytes, original_name: str, mime_type: str) -> dict:
+    """Save an attachment file and return its metadata dict."""
+    os.makedirs(ATTACHMENTS_DIR, exist_ok=True)
+    ext = os.path.splitext(original_name)[1].lower()
+    filename = f"{opt_id}{ext}"
+    with open(os.path.join(ATTACHMENTS_DIR, filename), "wb") as f:
+        f.write(file_bytes)
+    return {"filename": filename, "original_name": original_name, "mime_type": mime_type}
+
+
+def delete_attachment(filename: str) -> None:
+    """Delete an attachment file if it exists."""
+    if filename:
+        filepath = os.path.join(ATTACHMENTS_DIR, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+
+def load_attachment(filename: str) -> bytes | None:
+    """Return the bytes of an attachment file, or None if not found."""
+    if filename:
+        filepath = os.path.join(ATTACHMENTS_DIR, filename)
+        if os.path.exists(filepath):
+            with open(filepath, "rb") as f:
+                return f.read()
+    return None
